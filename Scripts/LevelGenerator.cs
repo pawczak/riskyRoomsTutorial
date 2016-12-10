@@ -22,7 +22,7 @@ public class LevelGenerator : MonoBehaviour
     private float levelChunkWidth = 0f;
     private bool initLoad = true;
     private Vector3 chunkOffsetSpawnPoint = new Vector3(100, 0, 0);
-    private Vector3 startingChunkOffset;
+    private Vector3 floorPrefabWidth;
     public int gameplayChunkCount = 5;
     private GameObject playerCubeObject;
     private List<float[]> chunksBoundries = new List<float[]>();
@@ -148,7 +148,7 @@ public class LevelGenerator : MonoBehaviour
         else
         {
             //Debug.Log("spawnOffset spawn point + staring chunk offset");
-            spawnOffset = new Vector3(spawnPoint.x - startingChunkOffset.x, spawnPoint.y, 0f);
+            spawnOffset = new Vector3(spawnPoint.x - floorPrefabWidth.x, spawnPoint.y, 0f);
         }
 
         GameObject loadedObjectsGroup = loadedLevelChunk.transform.GetChild(0).gameObject;
@@ -156,6 +156,7 @@ public class LevelGenerator : MonoBehaviour
         chunkGameObjectsList.Add(new List<GameObject>());
         List<GameObject> currentlyAddedChunk = chunkGameObjectsList[chunkGameObjectsList.Count - 1];
         int loadedEnvGroupCount = loadedEnvGroup.transform.childCount;
+
         for (int j = loadedEnvGroupCount - 1; j > -1; j--)
         {
             GameObject chunkGroupObject = loadedEnvGroup.transform.GetChild(j).gameObject;
@@ -165,11 +166,6 @@ public class LevelGenerator : MonoBehaviour
             chunkGroupObject.transform.Translate(spawnOffset);
             chunkGroupObject.transform.rotation = chunkObjectRotation;
             currentlyAddedChunk.Add(chunkGroupObject);
-            if (chunkGroupObject.tag == "floor")
-            {
-                Debug.Log("FOUND floor obj!!!");
-                addWallToFloor(chunkGroupObject);
-            }
         }
         int loadedObjectsGroupCount = loadedObjectsGroup.transform.childCount;
 
@@ -182,12 +178,18 @@ public class LevelGenerator : MonoBehaviour
             chunkGroupObject.transform.Translate(spawnOffset);
             chunkGroupObject.transform.rotation = chunkObjectRotation;
             currentlyAddedChunk.Add(chunkGroupObject);
+            Debug.Log("chunkGroupObject.tag " + chunkGroupObject.tag);
+            if (chunkGroupObject.tag == "floor")
+            {
+                Debug.Log("FOUND floor obj!!!");
+                addWallToFloor(chunkGroupObject);
+            }
         }
         spawnPoint.x += loadedChunkBounds.x;
 
         if (!initLoad)
         {
-            spawnPoint.x -= startingChunkOffset.x;
+            spawnPoint.x -= floorPrefabWidth.x;
         }
         if (!init && gameManager && gameManager.getChunkRevert())
         {
@@ -245,7 +247,7 @@ public class LevelGenerator : MonoBehaviour
     public void setChunkOffset()
     {
         GameObject tmpSimpleFloor = (GameObject) Instantiate(simpleFloor, chunkOffsetSpawnPoint, Quaternion.identity);
-        startingChunkOffset = new Vector3(tmpSimpleFloor.GetComponent<Renderer>().bounds.size.x, 0f, 0f);
+        floorPrefabWidth = new Vector3(tmpSimpleFloor.GetComponent<Renderer>().bounds.size.x, 0f, 0f);
         Object.DestroyImmediate(tmpSimpleFloor);
     }
 
@@ -370,13 +372,23 @@ public class LevelGenerator : MonoBehaviour
     {
         //
 //        floorGameObject
-
-        Vector3 frontWallVector = new Vector3();
-        Vector3 backWallVector = new Vector3();
+        float floorTileWidth = floorPrefabWidth.x;
+        float halfFloorTileWidth = Convert.ToSingle(floorPrefabWidth.x * 0.5);
+        Vector3 baseVector = floorGameObject.transform.position;
+        Vector3 backWallVector = new Vector3(0f, halfFloorTileWidth, halfFloorTileWidth);
+        Vector3 frontWallVector = new Vector3(0f, -halfFloorTileWidth, -halfFloorTileWidth);
+        Quaternion wallRotationQ = Quaternion.Euler(-90f, 0f, 0f);
 
         for (int i = 0; i < levelWallHeght; i++)
         {
-
+            GameObject backWall =
+                Instantiate(simpleFloor, baseVector + backWallVector, wallRotationQ) as GameObject;
+            GameObject frontWall =
+                Instantiate(simpleFloor, baseVector + frontWallVector, wallRotationQ) as GameObject;
+            backWall.transform.parent = floorGameObject.transform.parent;
+            frontWall.transform.parent = floorGameObject.transform.parent;
+            backWallVector.y += floorTileWidth;
+            frontWallVector.y -= floorTileWidth;
         }
     }
 
